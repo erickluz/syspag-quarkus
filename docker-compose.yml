@@ -1,0 +1,37 @@
+version: "3"
+services:
+
+  systripdb:
+    image: mariadb:10.5
+    restart: unless-stopped
+    container_name: systripdb
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_USER: systripdb
+      MARIADB_PASSWORD: 123456
+      MARIADB_ROOT_PASSWORD: 123456
+    volumes:
+      - /docker/data:/var/lib/mysql:rw
+      - /driver/deploy/script:/docker-entrypoint-initdb.d:rw
+      - /passenger/deploy/script:/docker-entrypoint-initdb.d:rw
+      - /trip/deploy/script:/docker-entrypoint-initdb.d:rw
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    container_name: rabbitmqbus
+    ports: 
+      - "8080:8080"
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: adm
+      RABBITMQ_DEFAULT_PASS: adm
+  infinispan:
+    image: quay.io/infinispan/server:13.0
+    container_name: infinispancahche
+    ports:
+      - "11222:11222"
+    environment:
+      USER: admin
+      PASS: admin
