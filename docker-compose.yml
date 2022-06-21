@@ -12,10 +12,9 @@ services:
       MARIADB_PASSWORD: 123456
       MARIADB_ROOT_PASSWORD: 123456
     volumes:
-      - /docker/data:/var/lib/mysql:rw
-      - /driver/deploy/script:/docker-entrypoint-initdb.d:rw
-      - /passenger/deploy/script:/docker-entrypoint-initdb.d:rw
-      - /trip/deploy/script:/docker-entrypoint-initdb.d:rw
+      - /driver/deploy/script/driverdb.sql:/docker-entrypoint-initdb.d:rw
+      - /passenger/deploy/script/passengerdb.sql:/docker-entrypoint-initdb.d:rw
+      - /trip/deploy/script/tripdb.sql:/docker-entrypoint-initdb.d:rw
   rabbitmq:
     image: rabbitmq:3-management
     restart: unless-stopped

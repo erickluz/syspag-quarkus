@@ -9,8 +9,8 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Entity
-public class User extends PanacheEntity {
-	private String nome;
+public class Driver extends PanacheEntity {
+	private String name;
 	private String cpf;
 	private String phoneNumber;
 	private String userName;

@@ -11,7 +11,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Entity
-public class Vehicle extends PanacheEntity{
+public class Vehicle extends PanacheEntity {
 	private String alias;
 	private String licensePlate;
 	private String vehicleManufacturer;
@@ -19,5 +19,5 @@ public class Vehicle extends PanacheEntity{
 	private String color;
 	@ManyToOne
 	@JoinColumn(name = "idUser")
-	private User user;
+	private Driver user;
 }

@@ -21,13 +21,6 @@ public class TripResource implements PanacheRepository<Travel> {
 	private TripService tripService;
 	
 	@POST
-	@Path("/passenger/{id}")
-	public Response passengerRequestsTrip(@PathParam("id") Long idPassenger) {
-		tripService.passengerRequestsTrip(idPassenger);
-		return Response.noContent().build();
-	}
-	
-	@POST
 	@Path("/driver/{id}")
 	public Response driverSignalsAvailability(@PathParam("id") Long idDriver) {
 		tripService.driverSignalsAvailability(idDriver);

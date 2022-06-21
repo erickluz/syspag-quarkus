@@ -1,16 +1,20 @@
 package org.erick.domain;
 
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Entity
-public class User extends PanacheEntity {
-	private String nome;
+public class Passenger {
+	@Id 
+	@GeneratedValue
+	private Long id;
+	private String name;
 	private String cpf;
 	private String phoneNumber;
 	private String userName;
