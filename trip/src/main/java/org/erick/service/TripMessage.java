@@ -4,6 +4,7 @@ package org.erick.service;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 
+import org.erick.domain.DriverAvailability;
 import org.erick.domain.TripRequest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,7 +48,7 @@ public class TripMessage {
 	}
 
 	private void setupQueueDriver() {
-		System.out.println("Reading passengers requests...");
+		System.out.println("Reading driver requests...");
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setHost("localhost");
 		factory.setUsername("adm");
@@ -69,7 +70,7 @@ public class TripMessage {
 			String message = new String(delivery.getBody(), "UTF-8");
 			System.out.println(" [x] Received '" + message + "'");
 			TripRequest tripRequest = (TripRequest) fromJson(message, TripRequest.class);
-			
+			System.out.println(tripRequest);
 		};
 		return deliverCallback;
 	}
@@ -78,8 +79,8 @@ public class TripMessage {
 		DeliverCallback deliverCallback = (consumerTag, delivery) -> {
 			String message = new String(delivery.getBody(), "UTF-8");
 			System.out.println(" [x] Received '" + message + "'");
-			TripRequest tripRequest = (TripRequest) fromJson(message, TripRequest.class);
-			
+			DriverAvailability driverAvailability = (DriverAvailability) fromJson(message, DriverAvailability.class);
+			System.out.println(driverAvailability);
 		};
 		return deliverCallback;
 	}
