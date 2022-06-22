@@ -1,21 +1,23 @@
 package org.erick.service;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.transaction.Transaction;
 
+import org.erick.domain.DriverCache;
+import org.erick.domain.PassengerCache;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
+import org.infinispan.query.dsl.Query;
+import org.infinispan.query.dsl.QueryFactory;
 
 @ApplicationScoped
 public class CacheService {
 
-    private RemoteCache<Long, String> passengerCache;
-    private RemoteCache<Long, String> driverCache;
+    private RemoteCache<Long, PassengerCache> passengerCache;
+    private RemoteCache<Long, DriverCache> driverCache;
 	
     @PostConstruct
     public void init() {
@@ -25,36 +27,48 @@ public class CacheService {
     	System.out.println("Cache Instaciado...");
     }
     
-    public RemoteCache<Long, String> passengerCache(
+    public RemoteCache<Long, PassengerCache> passengerCache(
     		RemoteCacheManager cacheManager, 
     		CacheListener listener) {
     	return cacheManager.getCache("passenger");
     }
     
-    public RemoteCache<Long, String> driverCache(
+    public RemoteCache<Long, DriverCache> driverCache(
     		RemoteCacheManager cacheManager, 
     		CacheListener listener) {
     	return cacheManager.getCache("driver");
     }
 
-	public String findPassenger(Long idPassenger) {
+	public PassengerCache findPassenger(Long idPassenger) {
 	    return passengerCache.get(idPassenger);
 	}
 	
-	public String findDriver(Long idDriver) {
+	public DriverCache findDriver(Long idDriver) {
 	    return driverCache.get(idDriver);
 	}
 	
-	public void setPasseger(Long idPassenger, String regiao) {
-		passengerCache.put(idPassenger, regiao);
+	public void setPasseger(Long idPassenger, PassengerCache passengerCache) {
+		this.passengerCache.put(idPassenger, passengerCache);
 	}
 	
-	public void setDriver(Long idDriver, String regiao) {
-		driverCache.put(idDriver, regiao);
+	public void setDriver(Long idDriver, DriverCache driverCache) {
+		this.driverCache.put(idDriver, driverCache);
 	}
 
 	public DefaultCacheManager defaultCacheManager() {
 	    return new DefaultCacheManager();
+	}
+	
+	public DriverCache getDriverCache() {
+		QueryFactory qf = org.infinispan.client.hotrod.Search.getQueryFactory(driverCache);
+		Query<Transaction> q = qf.create("from org.erick.domain.DriverCache where price > 20");
+		return (DriverCache) q.execute();
+	}
+	
+	public PassengerCache getPassengerCache() {
+		QueryFactory qf = org.infinispan.client.hotrod.Search.getQueryFactory(passengerCache);
+		Query<Transaction> q = qf.create("from org.erick.domain.PassengerCache where price > 20");
+		return (PassengerCache) q.execute();
 	}
 	
 	public RemoteCacheManager remoteCacheManager() {
@@ -69,11 +83,4 @@ public class CacheService {
         return new RemoteCacheManager(builder.build());
 	}
 
-	public List<String> getAllPassengersWaiting() {
-		return new ArrayList<>(passengerCache.values());
-	}
-
-	public List<String> getAllDriversWaiting() {
-		return new ArrayList<>(driverCache.values());
-	}
 }

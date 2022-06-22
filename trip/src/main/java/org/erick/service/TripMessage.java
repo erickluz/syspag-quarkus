@@ -3,6 +3,7 @@ package org.erick.service;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import org.erick.domain.DriverAvailability;
 import org.erick.domain.TripRequest;
@@ -22,6 +23,9 @@ public class TripMessage {
 	private final static String QUEUE_DRIVER_NAME = "driverTrip";
 	private Channel channelPassenger;
 	private Channel channelDriver;
+	
+	@Inject
+	private TripService tripService;
 
 	@PostConstruct
 	public void init() {
@@ -80,7 +84,7 @@ public class TripMessage {
 			String message = new String(delivery.getBody(), "UTF-8");
 			System.out.println(" [x] Received '" + message + "'");
 			DriverAvailability driverAvailability = (DriverAvailability) fromJson(message, DriverAvailability.class);
-			System.out.println(driverAvailability);
+			tripService.driverSignalsAvailability(driverAvailability);
 		};
 		return deliverCallback;
 	}
