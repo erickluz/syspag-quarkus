@@ -1,86 +1,89 @@
 package org.erick.service;
 
-import javax.annotation.PostConstruct;
+import java.util.List;
+
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.transaction.Transaction;
 
-import org.erick.domain.DriverCache;
-import org.erick.domain.PassengerCache;
+import org.erick.domain.driver.DriverCache;
+import org.erick.domain.passenger.PassengerCache;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
-import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
+
+import io.quarkus.infinispan.client.Remote;
 
 @ApplicationScoped
 public class CacheService {
 
-    private RemoteCache<Long, PassengerCache> passengerCache;
-    private RemoteCache<Long, DriverCache> driverCache;
+	private static final Long CACHE_ORDER_DRIVER = 1L;
+
+	RemoteCacheManager remoteCacheManager;
+
+	@Inject
+	@Remote("passenger")
+    RemoteCache<Long, PassengerCache> remotePassengerCache;
+	@Inject
+	@Remote("driver")
+    RemoteCache<Long, DriverCache> remoteDriverCache;
+	@Inject
+	@Remote("orderingDriver")
+	RemoteCache<Long, Long> remoteOrderingDriver;
 	
-    @PostConstruct
-    public void init() {
-    	System.out.println("Instanciando cache...");
-    	this.passengerCache = passengerCache(remoteCacheManager(), new CacheListener());
-    	this.driverCache = driverCache(remoteCacheManager(), new CacheListener());
-    	System.out.println("Cache Instaciado...");
-    }
-    
-    public RemoteCache<Long, PassengerCache> passengerCache(
-    		RemoteCacheManager cacheManager, 
-    		CacheListener listener) {
-    	return cacheManager.getCache("passenger");
-    }
-    
-    public RemoteCache<Long, DriverCache> driverCache(
-    		RemoteCacheManager cacheManager, 
-    		CacheListener listener) {
-    	return cacheManager.getCache("driver");
-    }
+	@Inject CacheService(RemoteCacheManager remoteCacheManager) {
+		this.remoteCacheManager = remoteCacheManager;
+	 }
 
 	public PassengerCache findPassenger(Long idPassenger) {
-	    return passengerCache.get(idPassenger);
+	    return remotePassengerCache.get(idPassenger);
 	}
 	
 	public DriverCache findDriver(Long idDriver) {
-	    return driverCache.get(idDriver);
-	}
-	
-	public void setPasseger(Long idPassenger, PassengerCache passengerCache) {
-		this.passengerCache.put(idPassenger, passengerCache);
-	}
-	
-	public void setDriver(Long idDriver, DriverCache driverCache) {
-		this.driverCache.put(idDriver, driverCache);
+	    return remoteDriverCache.get(idDriver);
 	}
 
-	public DefaultCacheManager defaultCacheManager() {
-	    return new DefaultCacheManager();
+	public Long getCurrentOrderingDriver() {
+		System.out.println("tamanho ordering:" + remoteOrderingDriver.size());
+		if (remoteOrderingDriver.size() == 0) {
+			remoteOrderingDriver.put(CACHE_ORDER_DRIVER, 1L);
+		}
+		return remoteOrderingDriver.get(CACHE_ORDER_DRIVER);
 	}
 	
-	public DriverCache getDriverCache() {
-		QueryFactory qf = org.infinispan.client.hotrod.Search.getQueryFactory(driverCache);
-		Query<Transaction> q = qf.create("from org.erick.domain.DriverCache where price > 20");
-		return (DriverCache) q.execute();
+	public void putPassegerOnHold(Long idPassenger, PassengerCache passengerCache) {
+		this.remotePassengerCache.put(idPassenger, passengerCache);
+	}
+	
+	public void signalDriverAvailability(Long idDriver, DriverCache driverCache) {
+		Long currentOrdering = getCurrentOrderingDriver();
+		driverCache.setOrdering(++currentOrdering);
+		this.remoteOrderingDriver.put(CACHE_ORDER_DRIVER, currentOrdering);
+		this.remoteDriverCache.put(idDriver, driverCache);
+	}
+
+	public DriverCache getDriverAvailaibleForPassenger(String address, String district) {
+		QueryFactory queryFactory = org.infinispan.client.hotrod.Search.getQueryFactory(remoteDriverCache);
+		Query<DriverCache> query = queryFactory.create(
+		"	FROM org.erick.domain.DriverCache " +
+		"	WHERE ((address = :address) OR (district = :district))" +
+		"	ORDER BY ordering ");
+		query.setParameter("address", address);
+		query.setParameter("district", district);
+		List<DriverCache> drivers = query.execute().list();
+		System.out.println("query: " + drivers.toString());
+		DriverCache driver = drivers.stream().findFirst().orElse(null);
+		if (driver != null) {
+			remoteDriverCache.remove(driver.getId());
+		}
+		return driver;
 	}
 	
 	public PassengerCache getPassengerCache() {
-		QueryFactory qf = org.infinispan.client.hotrod.Search.getQueryFactory(passengerCache);
-		Query<Transaction> q = qf.create("from org.erick.domain.PassengerCache where price > 20");
-		return (PassengerCache) q.execute();
-	}
-	
-	public RemoteCacheManager remoteCacheManager() {
-		ConfigurationBuilder builder = new ConfigurationBuilder(); 
-        builder.addServer().host("localhost").port(11222)
-        	.security()
-        	.authentication()
-        	.saslMechanism("SCRAM-SHA-1")
-        	.username("admin")
-        	.password("admin");
-        
-        return new RemoteCacheManager(builder.build());
+		QueryFactory qf = org.infinispan.client.hotrod.Search.getQueryFactory(remotePassengerCache);
+		Query<Transaction> query = qf.create("from org.erick.domain.PassengerCache where price > 20");
+		return (PassengerCache) query.execute();
 	}
 
 }

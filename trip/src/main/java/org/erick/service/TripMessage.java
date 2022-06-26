@@ -5,8 +5,8 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import org.erick.domain.DriverAvailability;
-import org.erick.domain.TripRequest;
+import org.erick.domain.driver.DriverAvailability;
+import org.erick.domain.passenger.TripRequestPassenger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
@@ -73,8 +73,8 @@ public class TripMessage {
 		DeliverCallback deliverCallback = (consumerTag, delivery) -> {
 			String message = new String(delivery.getBody(), "UTF-8");
 			System.out.println(" [x] Received '" + message + "'");
-			TripRequest tripRequest = (TripRequest) fromJson(message, TripRequest.class);
-			System.out.println(tripRequest);
+			TripRequestPassenger tripRequest = (TripRequestPassenger) fromJson(message, TripRequestPassenger.class);
+			tripService.passengerRequestsTrip(tripRequest);
 		};
 		return deliverCallback;
 	}

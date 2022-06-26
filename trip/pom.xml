@@ -68,31 +68,16 @@
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-jdbc-mariadb</artifactId>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.infinispan/infinispan-core -->
 		<dependency>
-			<groupId>org.infinispan</groupId>
-			<artifactId>infinispan-core</artifactId>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.infinispan/infinispan-client-hotrod -->
-		<dependency>
-			<groupId>org.infinispan</groupId>
-			<artifactId>infinispan-client-hotrod</artifactId>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.infinispan/infinispan-commons -->
-		<dependency>
-			<groupId>org.infinispan</groupId>
-			<artifactId>infinispan-commons</artifactId>
-		</dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-infinispan-client</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-scheduler</artifactId>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.infinispan/infinispan-query -->
-		<dependency>
-			<groupId>org.infinispan</groupId>
-			<artifactId>infinispan-query</artifactId>
-			<version>13.0.5.Final</version>
-		</dependency>
+
+
 	</dependencies>
 	<build>
 		<plugins>

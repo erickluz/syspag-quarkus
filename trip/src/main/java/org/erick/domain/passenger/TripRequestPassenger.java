@@ -1,11 +1,11 @@
-package org.erick.domain;
+package org.erick.domain.passenger;
 
 import lombok.Data;
 import lombok.ToString;
 
 @Data
 @ToString
-public class TripRequest {
+public class TripRequestPassenger {
     private Long idPassenger;
     private String addressOrigin;
     private String addressDestiny;

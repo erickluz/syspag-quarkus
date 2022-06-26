@@ -1,4 +1,4 @@
-package org.erick.domain;
+package org.erick.domain.travel;
 
 public enum StatusTravel {
 	FINDING,

@@ -28,7 +28,7 @@ services:
       RABBITMQ_DEFAULT_PASS: adm
   infinispan:
     image: quay.io/infinispan/server:13.0
-    container_name: infinispancahche
+    container_name: infinispancache
     ports:
       - "11222:11222"
     environment:

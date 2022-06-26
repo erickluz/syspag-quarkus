@@ -1,4 +1,4 @@
-package org.erick.domain;
+package org.erick.domain.driver;
 
 import lombok.Data;
 import lombok.ToString;

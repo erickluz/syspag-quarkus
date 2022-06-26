@@ -1,4 +1,4 @@
-package org.erick.domain;
+package org.erick.domain.travel;
 
 import java.time.LocalDateTime;
 
@@ -15,12 +15,13 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Entity
-public class PassengerHistory extends PanacheEntity {
+public class TravelStatusHistory extends PanacheEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long idDriverHistory;
+	private Long id;
 	@ManyToOne
-	@JoinColumn(name = "idPassenger")
-	private PassengerUser passenger;
+	@JoinColumn(name = "idTravel")
+	private Travel travel;
+	private StatusTravel status;
 	private LocalDateTime datetimeStatus;
 	private String observation;
 }
