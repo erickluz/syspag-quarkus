@@ -1,6 +1,7 @@
 package org.erick.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -15,10 +16,12 @@ import org.erick.domain.travel.Travel;
 import org.erick.domain.travel.TravelStatusHistory;
 import org.erick.repository.TravelRepository;
 import org.erick.repository.TravelStatusHistoryRepository;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class TripService {
-
+	
+	private static final Logger LOG = Logger.getLogger(TripService.class);
 	@Inject
 	private CacheService cache;
 	@Inject
@@ -26,21 +29,25 @@ public class TripService {
 	@Inject
 	private TravelStatusHistoryRepository travelStatusHistoryRepository;
 
-
-	@Transactional
 	public void passengerRequestsTrip(TripRequestPassenger tripRequest) {
 		PassengerCache passengerCache = new PassengerCache(tripRequest.getIdPassenger(),tripRequest.getAddressOrigin(), tripRequest.getAddressDestiny(), tripRequest.getDistrict());
 		DriverCache driverCache = cache.getDriverAvailaibleForPassenger(passengerCache.getAddressDestiny(), passengerCache.getDistrict());
 		if (driverCache != null) {
-			System.out.println("Motorista encontrado" + driverCache);
 			startTrip(passengerCache, driverCache);
 		} else {
-			System.out.println("Motorista nao encontrado");
 			cache.putPassegerOnHold(tripRequest.getIdPassenger(), passengerCache);
 		}
 	}
+	
+	public void driverSignalsAvailability(DriverAvailability driverAvailability) {
+		DriverCache driverCache = new DriverCache(driverAvailability.getIdDriver(), driverAvailability.getCurrentAddress(), driverAvailability.getDistrict(), null);
+		LOG.debug(driverCache.toString());
+		cache.signalDriverAvailability(driverAvailability.getIdDriver(), driverCache);
+	}
 
-	private void startTrip(PassengerCache passengerCache, DriverCache driverCache) {
+	@Transactional
+	public void startTrip(PassengerCache passengerCache, DriverCache driverCache) {
+			LOG.debug("Trip started. Passenger ID: " + passengerCache.getId() + " Driver ID: " + driverCache.getId());
 			Travel travel = new Travel();
 			travel.setIdDriver(driverCache.getId());
 			travel.setIdPassenger(passengerCache.getId());
@@ -52,10 +59,17 @@ public class TripService {
 			travelStatusHistoryRepository.persist(travelStatusHistory);
 	}
 
-	public void driverSignalsAvailability(DriverAvailability driverAvailability) {
-		DriverCache driverCache = new DriverCache(driverAvailability.getIdDriver(), driverAvailability.getCurrentAddress(), driverAvailability.getDistrict(), null);
-		System.out.println(driverCache.toString());
-		cache.signalDriverAvailability(driverAvailability.getIdDriver(), driverCache);
+	public void matchTrip() {
+		LOG.debug("Matching trips...");
+		List<PassengerCache> passengersWaiting = cache.getPassengersWaiting();
+		LOG.debug("Passengers waiting for trip: " + passengersWaiting.size());
+		passengersWaiting.stream().forEach(passenger -> {
+			DriverCache driverCache = cache.getDriverAvailaibleForPassenger(passenger.getAddressDestiny(), passenger.getDistrict());
+			if (driverCache != null) {
+				startTrip(passenger, driverCache);
+				cache.remotePassengerCache.remove(passenger.getId());
+			}
+		});
 	}
 
 }

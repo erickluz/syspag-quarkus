@@ -5,8 +5,10 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.erick.domain.driver.DriverAvailability;
 import org.erick.domain.passenger.TripRequestPassenger;
+import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
@@ -19,74 +21,63 @@ import io.quarkus.runtime.Startup;
 @Startup
 @ApplicationScoped
 public class TripMessage {
+	private static final Logger LOG = Logger.getLogger(TripMessage.class);
 	private final static String QUEUE_PASSENGER_NAME = "passengerTrip";
 	private final static String QUEUE_DRIVER_NAME = "driverTrip";
 	private Channel channelPassenger;
 	private Channel channelDriver;
 	
+	@ConfigProperty(name = "trip.rabbitmq.host")
+	private String rabbitMQhost;
+	@ConfigProperty(name = "trip.rabbitmq.username")
+	private String rabbitMQUser;
+	@ConfigProperty(name = "trip.rabbitmq.password")
+	private String rabbitMQPassword;
+
 	@Inject
 	private TripService tripService;
 
 	@PostConstruct
 	public void init() {
-		setupQueuePassenger();
-		setupQueueDriver();
+		LOG.debug("Setting Passenger queue ...");
+		setupQueue(QUEUE_PASSENGER_NAME, channelPassenger, processPassengerTripMessage());
+		LOG.debug("Setting Driver queue ...");
+		setupQueue(QUEUE_DRIVER_NAME, channelDriver, processDriverMessage());
+	}
+	
+	private ConnectionFactory getConnectionQueueFactory() {
+		ConnectionFactory factory = new ConnectionFactory();
+		factory.setHost(rabbitMQhost);
+		factory.setUsername(rabbitMQUser);
+        factory.setPassword(rabbitMQPassword);
+		return factory;
 	}
 
-	private void setupQueuePassenger() {
-		System.out.println("Reading passengers requests...");
-		ConnectionFactory factory = new ConnectionFactory();
-		factory.setHost("localhost");
-		factory.setUsername("adm");
-        factory.setPassword("adm");
+	private void setupQueue(String queue, Channel channel, DeliverCallback deliverCallback) {
 		try {
-			Connection connection = factory.newConnection();
-			this.channelPassenger = connection.createChannel();
-			this.channelPassenger.queueDeclare(QUEUE_PASSENGER_NAME, false, false, false, null);
-			DeliverCallback deliverCallback = processPassengerTripMessage();
-			this.channelPassenger.basicConsume(QUEUE_PASSENGER_NAME, true, deliverCallback, consumerTag -> { });
-			System.out.println("Queue setup");
+			Connection connection = getConnectionQueueFactory().newConnection();
+			channel = connection.createChannel();
+			channel.queueDeclare(queue, false, false, false, null);
+			channel.basicConsume(queue, true, deliverCallback, consumerTag -> { });
 		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void setupQueueDriver() {
-		System.out.println("Reading driver requests...");
-		ConnectionFactory factory = new ConnectionFactory();
-		factory.setHost("localhost");
-		factory.setUsername("adm");
-        factory.setPassword("adm");
-		try {
-			Connection connection = factory.newConnection();
-			this.channelDriver = connection.createChannel();
-			this.channelDriver.queueDeclare(QUEUE_DRIVER_NAME, false, false, false, null);
-			DeliverCallback deliverCallback = processDriverMessage();
-			this.channelDriver.basicConsume(QUEUE_DRIVER_NAME, true, deliverCallback, consumerTag -> { });
-			System.out.println("Queue setup");
-		} catch (Exception e) {
-			e.printStackTrace();
+			LOG.error("Error to setup queue. Queue: " + queue, e);
 		}
 	}
 
 	private DeliverCallback processPassengerTripMessage() {
-		DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+		return (consumerTag, delivery) -> {
 			String message = new String(delivery.getBody(), "UTF-8");
-			System.out.println(" [x] Received '" + message + "'");
-			TripRequestPassenger tripRequest = (TripRequestPassenger) fromJson(message, TripRequestPassenger.class);
-			tripService.passengerRequestsTrip(tripRequest);
+			LOG.debug(" [x] Received " + message);
+			tripService.passengerRequestsTrip((TripRequestPassenger) fromJson(message, TripRequestPassenger.class));
 		};
-		return deliverCallback;
 	}
 
 	private DeliverCallback processDriverMessage() {
-		DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+		return (consumerTag, delivery) -> {
 			String message = new String(delivery.getBody(), "UTF-8");
-			System.out.println(" [x] Received '" + message + "'");
-			DriverAvailability driverAvailability = (DriverAvailability) fromJson(message, DriverAvailability.class);
-			tripService.driverSignalsAvailability(driverAvailability);
+			LOG.debug(" [x] Received " + message);
+			tripService.driverSignalsAvailability((DriverAvailability) fromJson(message, DriverAvailability.class));
 		};
-		return deliverCallback;
 	}
 
 	private Object fromJson(String json, Class<?> classe) {
@@ -98,4 +89,5 @@ public class TripMessage {
 		}
 		return null;
 	}
+
 }

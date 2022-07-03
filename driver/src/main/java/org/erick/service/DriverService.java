@@ -6,9 +6,11 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.erick.domain.Driver;
 import org.erick.domain.DriverAvailability;
 import org.erick.repository.DriverRepository;
+import org.jboss.logging.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,7 +21,14 @@ import com.rabbitmq.client.ConnectionFactory;
 
 @ApplicationScoped
 public class DriverService {
+    private static final Logger LOG = Logger.getLogger(DriverService.class);
     private final static String QUEUE_NAME = "driverTrip";
+	@ConfigProperty(name = "driver.rabbitmq.host")
+	private String rabbitMQhost;
+	@ConfigProperty(name = "driver.rabbitmq.username")
+	private String rabbitMQUser;
+	@ConfigProperty(name = "driver.rabbitmq.password")
+	private String rabbitMQPassword;
     @Inject
     private DriverRepository driverRepository;
     
@@ -42,16 +51,15 @@ public class DriverService {
 
     private void sendMessage(String message) {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("localhost");
-        factory.setUsername("adm");
-        factory.setPassword("adm");
+        factory.setHost(rabbitMQhost);
+        factory.setUsername(rabbitMQUser);
+        factory.setPassword(rabbitMQPassword);
         try (Connection connection = factory.newConnection();
              Channel channel = connection.createChannel()) {
                 channel.queueDeclare(QUEUE_NAME, false, false, false, null);
                 channel.basicPublish("", QUEUE_NAME, null, message.getBytes());
-                System.out.println("message sent");
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Error to send message to queue. ", e);
         }
     }
 
@@ -60,7 +68,7 @@ public class DriverService {
         try {
             return ow.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            LOG.error("Error to convert object to json.", e);
         }
         return null;
     }
