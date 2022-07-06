@@ -9,6 +9,7 @@
 		<module>trip</module>
 		<module>driver</module>
 		<module>passenger</module>
+		<module>test-runner</module>
 	</modules>
 
 </project>
